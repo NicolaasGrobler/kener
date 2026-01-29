@@ -22,6 +22,8 @@ tags:
   description: APIs to interact with monitors
 - name: Incidents
   description: APIs to integrate incidents
+- name: Categories
+  description: APIs to manage category groups for the home page
 components:
   securitySchemes:
     bearerAuth:
@@ -247,6 +249,74 @@ components:
       example:
         start_date_time: 1731901920
         title: title of the incident
+    Category:
+      title: Category
+      type: object
+      description: A category group for organizing monitors
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: Category name (must be unique)
+          example: Infrastructure
+        description:
+          type: string
+          description: Category description
+          example: Cloud Infrastructure Monitoring
+        isHidden:
+          type: boolean
+          description: Whether the category is hidden from public view
+          default: false
+          example: false
+      example:
+        name: Infrastructure
+        description: Cloud Infrastructure Monitoring
+        isHidden: false
+    CategoryCreateRequest:
+      title: Category Create Request
+      type: object
+      description: Request body to create a new category
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: Category name (must be unique)
+          example: Infrastructure
+        description:
+          type: string
+          description: Category description
+          example: Cloud Infrastructure Monitoring
+        isHidden:
+          type: boolean
+          description: Whether the category is hidden
+          default: false
+          example: false
+      example:
+        name: Infrastructure
+        description: Cloud Infrastructure Monitoring
+        isHidden: false
+    CategoryUpdateRequest:
+      title: Category Update Request
+      type: object
+      description: Request body to update an existing category
+      properties:
+        name:
+          type: string
+          description: New category name (optional)
+          example: Infrastructure Services
+        description:
+          type: string
+          description: New category description (optional)
+          example: Updated description
+        isHidden:
+          type: boolean
+          description: New visibility state (optional)
+          example: true
+      example:
+        description: Updated Cloud Infrastructure Monitoring
+        isHidden: true
   responses:
     Response401:
       description: Bad API keys response
@@ -274,6 +344,45 @@ components:
                 example: unknown tags
           example:
             error: unknown tags
+    Response403:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: Authorization error
+                example: Only Admins and Editors can perform this action
+          example:
+            error: Only Admins and Editors can perform this action
+    Response404:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: Resource not found error
+                example: Category not found
+          example:
+            error: Category not found
+    Response409:
+      description: Conflict - resource already exists
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: Conflict error
+                example: Category already exists
+          example:
+            error: Category already exists
   examples:
     GetMonitorStatusExample200:
       summary: response of get status of a monitor
@@ -369,6 +478,32 @@ components:
         updated_at: '2025-01-09 04:52:16'
         status: ACTIVE
         state: MONITORING
+    CategoriesListResponse:
+      summary: list of all categories
+      description: Array of category objects
+      value:
+      - name: Home
+        description: Monitors for Home Page
+        isHidden: false
+      - name: API
+        description: API Services
+        isHidden: false
+      - name: Database
+        description: Database Monitors
+        isHidden: true
+    CategoryCreateRequest:
+      summary: create category request body
+      description: Request body to create a new category
+      value:
+        name: Infrastructure
+        description: Cloud Infrastructure Monitoring
+        isHidden: false
+    CategoryUpdateRequest:
+      summary: update category request body
+      description: Request body to update an existing category
+      value:
+        description: Updated Cloud Infrastructure Monitoring
+        isHidden: true
 paths:
   "/api/status":
     post:
@@ -802,3 +937,227 @@ paths:
                     example: Monitor deleted successfully
       security:
       - bearerAuth: []
+  "/manage/app/api/categories":
+    get:
+      operationId: getAllCategories
+      summary: Get all categories
+      description: Retrieve all category groups for the home page
+      tags:
+      - Categories
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: List of categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Category"
+              examples:
+                success:
+                  "$ref": "#/components/examples/CategoriesListResponse"
+        '401':
+          "$ref": "#/components/responses/Response401"
+    post:
+      operationId: createCategory
+      summary: Create a new category
+      description: Create a new category group for the home page. Requires admin or editor role.
+      tags:
+      - Categories
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        description: Category data to create
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CategoryCreateRequest"
+            examples:
+              sample:
+                "$ref": "#/components/examples/CategoryCreateRequest"
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Category"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+        '409':
+          "$ref": "#/components/responses/Response409"
+    put:
+      operationId: bulkUpdateCategories
+      summary: Bulk update all categories
+      description: Replace all categories with a new list. First category must be 'Home'. Requires admin or editor role.
+      tags:
+      - Categories
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        description: Complete list of categories
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                "$ref": "#/components/schemas/Category"
+            examples:
+              sample:
+                "$ref": "#/components/examples/CategoriesListResponse"
+      responses:
+        '200':
+          description: Categories updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  categories:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Category"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+  "/manage/app/api/categories/{name}":
+    parameters:
+    - name: name
+      in: path
+      required: true
+      description: The name of the category (URL-encoded if contains spaces)
+      schema:
+        type: string
+        example: Infrastructure
+    get:
+      operationId: getCategory
+      summary: Get a specific category
+      description: Retrieve a single category by its name
+      tags:
+      - Categories
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Category retrieved successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Category"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '404':
+          "$ref": "#/components/responses/Response404"
+    put:
+      operationId: updateCategory
+      summary: Update a specific category
+      description: Update an existing category's properties. Cannot rename 'Home' category. Requires admin or editor role.
+      tags:
+      - Categories
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        description: Updated category data
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CategoryUpdateRequest"
+            examples:
+              sample:
+                "$ref": "#/components/examples/CategoryUpdateRequest"
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Category"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+        '404':
+          "$ref": "#/components/responses/Response404"
+        '409':
+          "$ref": "#/components/responses/Response409"
+    patch:
+      operationId: patchCategory
+      summary: Partially update a category
+      description: Partially update a category (same as PUT but more semantically correct for partial updates). Requires admin or editor role.
+      tags:
+      - Categories
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        description: Fields to update
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CategoryUpdateRequest"
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Category"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+        '404':
+          "$ref": "#/components/responses/Response404"
+        '409':
+          "$ref": "#/components/responses/Response409"
+    delete:
+      operationId: deleteCategory
+      summary: Delete a category
+      description: Delete a category by name. Cannot delete 'Home' category. Requires admin or editor role.
+      tags:
+      - Categories
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Category 'Infrastructure' deleted successfully
+                  deleted:
+                    "$ref": "#/components/schemas/Category"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+        '404':
+          "$ref": "#/components/responses/Response404"

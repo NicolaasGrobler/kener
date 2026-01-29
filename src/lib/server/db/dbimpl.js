@@ -533,6 +533,11 @@ class DbImpl {
     });
   }
 
+  //delete trigger
+  async deleteTrigger(id) {
+    return await this.knex("triggers").where({ id }).del();
+  }
+
   //get all alerts with given status
   async getTriggers(data) {
     let query = this.knex("triggers").whereRaw("1=1");
