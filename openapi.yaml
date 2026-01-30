@@ -24,6 +24,10 @@ tags:
   description: APIs to integrate incidents
 - name: Categories
   description: APIs to manage category groups for the home page
+- name: Triggers
+  description: APIs to manage notification channels (webhooks, Discord, Slack, email)
+- name: Alerts
+  description: APIs to access system-generated alert history
 components:
   securitySchemes:
     bearerAuth:
@@ -317,6 +321,277 @@ components:
       example:
         description: Updated Cloud Infrastructure Monitoring
         isHidden: true
+    Trigger:
+      title: Trigger
+      type: object
+      description: A notification channel configuration
+      required:
+      - id
+      - name
+      - trigger_type
+      properties:
+        id:
+          type: integer
+          description: Unique trigger ID
+          example: 1
+        name:
+          type: string
+          description: Trigger name
+          example: Production Slack Channel
+        trigger_type:
+          type: string
+          description: Type of notification channel
+          enum:
+          - webhook
+          - discord
+          - slack
+          - email
+          example: slack
+        trigger_desc:
+          type: string
+          description: Trigger description
+          example: Notifications for production incidents
+        trigger_status:
+          type: string
+          description: Whether the trigger is active
+          enum:
+          - ACTIVE
+          - INACTIVE
+          default: ACTIVE
+          example: ACTIVE
+        trigger_meta:
+          type: string
+          description: JSON string containing channel-specific configuration
+          example: '{"webhookUrl":"https://hooks.slack.com/..."}'
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: '2025-01-29 12:00:00'
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: '2025-01-29 14:30:00'
+      example:
+        id: 1
+        name: Production Slack Channel
+        trigger_type: slack
+        trigger_desc: Notifications for production incidents
+        trigger_status: ACTIVE
+        trigger_meta: '{"webhookUrl":"https://hooks.slack.com/..."}'
+        created_at: '2025-01-29 12:00:00'
+        updated_at: '2025-01-29 14:30:00'
+    TriggerCreateRequest:
+      title: Trigger Create Request
+      type: object
+      description: Request body to create a new trigger
+      required:
+      - name
+      - trigger_type
+      properties:
+        name:
+          type: string
+          description: Trigger name (must be unique)
+          example: Production Slack Channel
+        trigger_type:
+          type: string
+          description: Type of notification channel
+          enum:
+          - webhook
+          - discord
+          - slack
+          - email
+          example: slack
+        trigger_desc:
+          type: string
+          description: Trigger description
+          example: Notifications for production incidents
+        trigger_status:
+          type: string
+          description: Whether the trigger is active
+          enum:
+          - ACTIVE
+          - INACTIVE
+          default: ACTIVE
+          example: ACTIVE
+        trigger_meta:
+          type: string
+          description: JSON string containing channel-specific configuration
+          example: '{"webhookUrl":"https://hooks.slack.com/..."}'
+      example:
+        name: Production Slack Channel
+        trigger_type: slack
+        trigger_desc: Notifications for production incidents
+        trigger_status: ACTIVE
+        trigger_meta: '{"webhookUrl":"https://hooks.slack.com/..."}'
+    TriggerUpdateRequest:
+      title: Trigger Update Request
+      type: object
+      description: Request body to update an existing trigger
+      properties:
+        name:
+          type: string
+          description: New trigger name (optional)
+          example: Updated Slack Channel
+        trigger_type:
+          type: string
+          description: Type of notification channel (optional)
+          enum:
+          - webhook
+          - discord
+          - slack
+          - email
+          example: slack
+        trigger_desc:
+          type: string
+          description: New description (optional)
+          example: Updated notifications configuration
+        trigger_status:
+          type: string
+          description: New status (optional)
+          enum:
+          - ACTIVE
+          - INACTIVE
+          example: INACTIVE
+        trigger_meta:
+          type: string
+          description: New JSON configuration (optional)
+          example: '{"webhookUrl":"https://hooks.slack.com/updated"}'
+      example:
+        trigger_desc: Updated notifications configuration
+        trigger_status: INACTIVE
+    Alert:
+      title: Alert
+      type: object
+      description: System-generated alert from monitor checks
+      properties:
+        id:
+          type: integer
+          description: Unique alert ID
+          example: 42
+        monitor_tag:
+          type: string
+          description: Tag of the monitor that generated this alert
+          example: earth
+        status:
+          type: string
+          description: Status at time of alert
+          enum:
+          - UP
+          - DOWN
+          - DEGRADED
+          example: DOWN
+        timestamp:
+          type: integer
+          description: When the alert was generated (UTC seconds)
+          example: 1736398336
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: '2025-01-29 12:00:00'
+      example:
+        id: 42
+        monitor_tag: earth
+        status: DOWN
+        timestamp: 1736398336
+        created_at: '2025-01-29 12:00:00'
+    TriggerConfig:
+      title: Trigger Configuration
+      type: object
+      description: Trigger configuration for a monitor (DOWN or DEGRADED)
+      properties:
+        trigger_type:
+          type: string
+          description: Type of trigger
+          enum:
+          - DOWN
+          - DEGRADED
+          example: DOWN
+        failureThreshold:
+          type: integer
+          description: Number of consecutive failures before triggering
+          minimum: 1
+          example: 3
+        successThreshold:
+          type: integer
+          description: Number of consecutive successes before clearing
+          minimum: 1
+          example: 2
+        description:
+          type: string
+          description: Description of what this trigger does
+          example: Alert on service downtime
+        createIncident:
+          type: string
+          description: Whether to create an incident when triggered
+          enum:
+          - 'YES'
+          - 'NO'
+          example: 'YES'
+        active:
+          type: boolean
+          description: Whether this trigger is active
+          example: true
+        severity:
+          type: string
+          description: Severity level
+          example: critical
+        triggers:
+          type: array
+          description: Array of trigger IDs to notify
+          items:
+            type: integer
+          example: [1, 2, 3]
+      example:
+        trigger_type: DOWN
+        failureThreshold: 3
+        successThreshold: 2
+        description: Alert on service downtime
+        createIncident: 'YES'
+        active: true
+        severity: critical
+        triggers: [1, 2, 3]
+    MonitorTriggersResponse:
+      title: Monitor Triggers Response
+      type: object
+      description: Trigger configuration for a monitor
+      properties:
+        monitor_id:
+          type: integer
+          description: Monitor database ID
+          example: 5
+        monitor_tag:
+          type: string
+          description: Monitor tag
+          example: earth
+        monitor_name:
+          type: string
+          description: Monitor name
+          example: Earth Service
+        down_trigger:
+          allOf:
+          - "$ref": "#/components/schemas/TriggerConfig"
+          - description: Configuration for DOWN status triggers
+          nullable: true
+        degraded_trigger:
+          allOf:
+          - "$ref": "#/components/schemas/TriggerConfig"
+          - description: Configuration for DEGRADED status triggers
+          nullable: true
+      example:
+        monitor_id: 5
+        monitor_tag: earth
+        monitor_name: Earth Service
+        down_trigger:
+          trigger_type: DOWN
+          failureThreshold: 3
+          successThreshold: 2
+          createIncident: 'YES'
+          active: true
+          triggers: [1, 2]
+        degraded_trigger: null
   responses:
     Response401:
       description: Bad API keys response
@@ -504,6 +779,114 @@ components:
       value:
         description: Updated Cloud Infrastructure Monitoring
         isHidden: true
+    TriggersListResponse:
+      summary: list of all triggers
+      description: Array of trigger objects
+      value:
+      - id: 1
+        name: Production Slack Channel
+        trigger_type: slack
+        trigger_desc: Notifications for production incidents
+        trigger_status: ACTIVE
+        trigger_meta: '{"webhookUrl":"https://hooks.slack.com/..."}'
+        created_at: '2025-01-29 12:00:00'
+        updated_at: '2025-01-29 14:30:00'
+      - id: 2
+        name: Dev Discord Webhook
+        trigger_type: discord
+        trigger_desc: Development environment alerts
+        trigger_status: ACTIVE
+        trigger_meta: '{"webhookUrl":"https://discord.com/api/webhooks/..."}'
+        created_at: '2025-01-28 10:00:00'
+        updated_at: '2025-01-28 10:00:00'
+    TriggerCreateRequest:
+      summary: create trigger request body
+      description: Request body to create a new trigger
+      value:
+        name: Production Slack Channel
+        trigger_type: slack
+        trigger_desc: Notifications for production incidents
+        trigger_status: ACTIVE
+        trigger_meta: '{"webhookUrl":"https://hooks.slack.com/..."}'
+    TriggerUpdateRequest:
+      summary: update trigger request body
+      description: Request body to update an existing trigger
+      value:
+        trigger_desc: Updated notifications configuration
+        trigger_status: INACTIVE
+    TriggerResponse:
+      summary: single trigger response
+      description: Single trigger object
+      value:
+        id: 1
+        name: Production Slack Channel
+        trigger_type: slack
+        trigger_desc: Notifications for production incidents
+        trigger_status: ACTIVE
+        trigger_meta: '{"webhookUrl":"https://hooks.slack.com/..."}'
+        created_at: '2025-01-29 12:00:00'
+        updated_at: '2025-01-29 14:30:00'
+    AlertsListResponse:
+      summary: paginated list of alerts
+      description: Paginated alert history with metadata
+      value:
+        alerts:
+        - id: 42
+          monitor_tag: earth
+          status: DOWN
+          timestamp: 1736398336
+          created_at: '2025-01-29 12:00:00'
+        - id: 41
+          monitor_tag: google
+          status: DEGRADED
+          timestamp: 1736398200
+          created_at: '2025-01-29 11:56:40'
+        pagination:
+          page: 1
+          limit: 20
+          total: 152
+          totalPages: 8
+          hasNext: true
+          hasPrev: false
+    MonitorTriggersResponse:
+      summary: monitor trigger configuration
+      description: Trigger settings for a specific monitor
+      value:
+        monitor_id: 5
+        monitor_tag: earth
+        monitor_name: Earth Service
+        down_trigger:
+          trigger_type: DOWN
+          failureThreshold: 3
+          successThreshold: 2
+          description: Alert on service downtime
+          createIncident: 'YES'
+          active: true
+          severity: critical
+          triggers: [1, 2]
+        degraded_trigger:
+          trigger_type: DEGRADED
+          failureThreshold: 5
+          successThreshold: 3
+          description: Alert on degraded performance
+          createIncident: 'NO'
+          active: true
+          severity: warning
+          triggers: [2]
+    MonitorTriggersUpdateRequest:
+      summary: update monitor trigger configuration
+      description: Request body to update trigger settings for a monitor
+      value:
+        down_trigger:
+          trigger_type: DOWN
+          failureThreshold: 3
+          successThreshold: 2
+          description: Alert on service downtime
+          createIncident: 'YES'
+          active: true
+          severity: critical
+          triggers: [1, 2]
+        degraded_trigger: null
 paths:
   "/api/status":
     post:
@@ -1153,6 +1536,429 @@ paths:
                     example: Category 'Infrastructure' deleted successfully
                   deleted:
                     "$ref": "#/components/schemas/Category"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+        '404':
+          "$ref": "#/components/responses/Response404"
+  "/manage/app/api/triggers":
+    get:
+      operationId: getAllTriggers
+      summary: Get all triggers
+      description: Retrieve all notification channel configurations with optional status filter
+      tags:
+      - Triggers
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: status
+        in: query
+        description: Filter by trigger status
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+          example: ACTIVE
+      responses:
+        '200':
+          description: List of triggers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Trigger"
+              examples:
+                success:
+                  "$ref": "#/components/examples/TriggersListResponse"
+        '401':
+          "$ref": "#/components/responses/Response401"
+    post:
+      operationId: createTrigger
+      summary: Create a new trigger
+      description: Create a new notification channel configuration. Requires admin or editor role.
+      tags:
+      - Triggers
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        description: Trigger data to create
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/TriggerCreateRequest"
+            examples:
+              sample:
+                "$ref": "#/components/examples/TriggerCreateRequest"
+      responses:
+        '201':
+          description: Trigger created successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Trigger"
+              examples:
+                success:
+                  "$ref": "#/components/examples/TriggerResponse"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+        '409':
+          "$ref": "#/components/responses/Response409"
+  "/manage/app/api/triggers/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: The ID of the trigger
+      schema:
+        type: integer
+        example: 1
+    get:
+      operationId: getTrigger
+      summary: Get a specific trigger
+      description: Retrieve a single trigger by its ID
+      tags:
+      - Triggers
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Trigger retrieved successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Trigger"
+              examples:
+                success:
+                  "$ref": "#/components/examples/TriggerResponse"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '404':
+          "$ref": "#/components/responses/Response404"
+    put:
+      operationId: updateTrigger
+      summary: Update a specific trigger
+      description: Update an existing trigger's properties. Requires admin or editor role.
+      tags:
+      - Triggers
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        description: Updated trigger data
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/TriggerUpdateRequest"
+            examples:
+              sample:
+                "$ref": "#/components/examples/TriggerUpdateRequest"
+      responses:
+        '200':
+          description: Trigger updated successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Trigger"
+              examples:
+                success:
+                  "$ref": "#/components/examples/TriggerResponse"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+        '404':
+          "$ref": "#/components/responses/Response404"
+        '409':
+          "$ref": "#/components/responses/Response409"
+    patch:
+      operationId: patchTrigger
+      summary: Partially update a trigger
+      description: Partially update a trigger (same as PUT but more semantically correct for partial updates). Requires admin or editor role.
+      tags:
+      - Triggers
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        description: Fields to update
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/TriggerUpdateRequest"
+      responses:
+        '200':
+          description: Trigger updated successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Trigger"
+              examples:
+                success:
+                  "$ref": "#/components/examples/TriggerResponse"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+        '404':
+          "$ref": "#/components/responses/Response404"
+        '409':
+          "$ref": "#/components/responses/Response409"
+    delete:
+      operationId: deleteTrigger
+      summary: Delete a trigger
+      description: Delete a trigger by ID. Requires admin or editor role.
+      tags:
+      - Triggers
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Trigger deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Trigger 'Production Slack Channel' deleted successfully
+                  deleted:
+                    "$ref": "#/components/schemas/Trigger"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+        '404':
+          "$ref": "#/components/responses/Response404"
+  "/manage/app/api/alerts":
+    get:
+      operationId: getAllAlerts
+      summary: Get alert history
+      description: Retrieve paginated system-generated alert history. Alerts are read-only as they are automatically created from monitor checks.
+      tags:
+      - Alerts
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        description: Page number
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+          example: 1
+      - name: limit
+        in: query
+        description: Number of alerts per page
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+          example: 20
+      responses:
+        '200':
+          description: Alert history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alerts:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Alert"
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 20
+                      total:
+                        type: integer
+                        description: Total number of alerts
+                        example: 152
+                      totalPages:
+                        type: integer
+                        description: Total number of pages
+                        example: 8
+                      hasNext:
+                        type: boolean
+                        description: Whether there is a next page
+                        example: true
+                      hasPrev:
+                        type: boolean
+                        description: Whether there is a previous page
+                        example: false
+              examples:
+                success:
+                  "$ref": "#/components/examples/AlertsListResponse"
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+  "/manage/app/api/monitors/{tag}/triggers":
+    parameters:
+    - name: tag
+      in: path
+      required: true
+      description: The tag of the monitor (URL-encoded if contains spaces)
+      schema:
+        type: string
+        example: earth
+    get:
+      operationId: getMonitorTriggers
+      summary: Get trigger configuration for a monitor
+      description: Retrieve the DOWN and DEGRADED trigger configurations for a specific monitor
+      tags:
+      - Monitors
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Monitor trigger configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/MonitorTriggersResponse"
+              examples:
+                success:
+                  "$ref": "#/components/examples/MonitorTriggersResponse"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '404':
+          "$ref": "#/components/responses/Response404"
+    put:
+      operationId: updateMonitorTriggers
+      summary: Update trigger configuration for a monitor
+      description: Update the DOWN and/or DEGRADED trigger configurations for a specific monitor. Requires admin or editor role.
+      tags:
+      - Monitors
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        description: Updated trigger configuration
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                down_trigger:
+                  allOf:
+                  - "$ref": "#/components/schemas/TriggerConfig"
+                  - description: Configuration for DOWN status triggers
+                  nullable: true
+                degraded_trigger:
+                  allOf:
+                  - "$ref": "#/components/schemas/TriggerConfig"
+                  - description: Configuration for DEGRADED status triggers
+                  nullable: true
+            examples:
+              sample:
+                "$ref": "#/components/examples/MonitorTriggersUpdateRequest"
+      responses:
+        '200':
+          description: Monitor trigger configuration updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                - "$ref": "#/components/schemas/MonitorTriggersResponse"
+                - type: object
+                  properties:
+                    success:
+                      type: boolean
+                      example: true
+              examples:
+                success:
+                  value:
+                    success: true
+                    monitor_id: 5
+                    monitor_tag: earth
+                    monitor_name: Earth Service
+                    down_trigger:
+                      trigger_type: DOWN
+                      failureThreshold: 3
+                      successThreshold: 2
+                      description: Alert on service downtime
+                      createIncident: 'YES'
+                      active: true
+                      severity: critical
+                      triggers: [1, 2]
+                    degraded_trigger: null
+        '400':
+          "$ref": "#/components/responses/Response400"
+        '401':
+          "$ref": "#/components/responses/Response401"
+        '403':
+          "$ref": "#/components/responses/Response403"
+        '404':
+          "$ref": "#/components/responses/Response404"
+    patch:
+      operationId: patchMonitorTriggers
+      summary: Partially update monitor trigger configuration
+      description: Partially update trigger configuration for a monitor (same as PUT but more semantically correct for partial updates). Requires admin or editor role.
+      tags:
+      - Monitors
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        description: Fields to update
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                down_trigger:
+                  allOf:
+                  - "$ref": "#/components/schemas/TriggerConfig"
+                  - description: Configuration for DOWN status triggers
+                  nullable: true
+                degraded_trigger:
+                  allOf:
+                  - "$ref": "#/components/schemas/TriggerConfig"
+                  - description: Configuration for DEGRADED status triggers
+                  nullable: true
+      responses:
+        '200':
+          description: Monitor trigger configuration updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                - "$ref": "#/components/schemas/MonitorTriggersResponse"
+                - type: object
+                  properties:
+                    success:
+                      type: boolean
+                      example: true
         '400':
           "$ref": "#/components/responses/Response400"
         '401':
